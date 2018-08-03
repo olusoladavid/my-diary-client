@@ -224,6 +224,11 @@
   margin: 0;
   padding: 0;
 }
+.form__error {
+  color: red;
+  display: none;
+  padding-right: 25px;
+}
 .button--loading::after {
   -webkit-animation: spinAround 0.5s infinite linear;
   animation: spinAround 0.5s infinite linear;
@@ -579,7 +584,7 @@
     display: none;
     position: fixed;
     padding: 50px 20px 20px;
-    background: #ef8354;
+    background: #ffffff;
     right: 0px;
     top: 0px;
     width: 50%;
@@ -594,7 +599,7 @@
     display: block;
   }
   .nav__link {
-    color: #fff;
+    color: #6865f9;
     font-size: 30px;
     font-weight: 600px;
     padding: 5px;
