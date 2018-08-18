@@ -508,6 +508,60 @@ if (modalConfirmBtn) modalConfirmBtn.addEventListener('click', confirmDelete);
 if (modalCancelBtn) modalCancelBtn.addEventListener('click', hideDeleteModal);
 if (favBtn) favBtn.addEventListener('click', toggleFavorite);
 
+// -------------------------- New story functions -----------------------------
+
+const newStoryForm = document.querySelector('.js-new-story');
+const newStoryBtn = document.querySelector('.js-new-story-btn');
+if (newStoryForm) newStoryForm.querySelector('.form-group__heading').innerHTML = new Date();
+
+const addStory = async (e) => {
+  e.preventDefault();
+  // show progress feedback
+  startProgress(newStoryBtn);
+  // get title and content
+  const title = newStoryForm.querySelector('.js-new-story-title').value;
+  const content = newStoryForm.querySelector('.js-new-story-content').value;
+  // prepare request
+  const requestUrl = `${baseUrl}/entries`;
+  const token = localStorage.getItem('accessToken');
+  const data = JSON.stringify({
+    title,
+    content,
+    is_favorite: false,
+  });
+  const request = {
+    method: 'POST',
+    mode: 'cors',
+    body: data,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  // send request
+  try {
+    // TODO: inform user that fetch has started
+    const rawResponse = await fetch(requestUrl, request);
+    const { status } = rawResponse;
+    const parsedResponse = await rawResponse.json();
+    if (status === 201) {
+      // redirect user to all entries page
+      window.location.replace('stories.html');
+    } else if (status === 400) {
+      // TODO: t
+    } else {
+      handleCommonErrors(status, parsedResponse);
+    }
+  } catch (err) {
+    // TODO: toast connection error message
+  } finally {
+    if (newStoryBtn) stopProgress(newStoryBtn, 'Save');
+  }
+  // handle errors
+};
+
+if (newStoryForm) newStoryForm.addEventListener('submit', addStory);
+
 // -------------------- Router functions --------------------------
 
 const resolveRoute = () => {
