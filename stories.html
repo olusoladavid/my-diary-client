@@ -57,82 +57,14 @@
       My Stories
     </h1>
     <div class="story-list js-story-list">
-      <figure class="story-list__item">
-        <div class="item__holder"></div>
-        <div class="item__date">
-          <span class="date__span date__day">28</span>
-          <span class="date__span date__month">Apr</span>
-          <span class="date__span date__year">2018</span>
-        </div>
-        <figcaption class="item__caption">
-          <h3 class="caption__text caption__title">I kissed her</h3>
-          <p class="caption__text">It was a dark cold night. We were strolling down the street as I escorted her home</p>
-        </figcaption>
-        <div class="item__overlay">Read Story</div>
-        <a class="link item__link" href="story.html?id=1"></a>
-      </figure>
-      <figure class="story-list__item">
-        <div class="item__holder"></div>
-        <div class="item__date">
-          <span class="date__span date__day">17</span>
-          <span class="date__span date__month">May</span>
-          <span class="date__span date__year">2018</span>
-        </div>
-        <figcaption class="item__caption">
-          <h3 class="caption__text caption__title">Broke ass</h3>
-          <p class="caption__text">I'm killing time while I wait for life to shower me with meaning and happiness.</p>
-        </figcaption>
-        <div class="item__overlay">Read Story</div>
-        <a class="link item__link" href="story.html?id=2"></a>
-      </figure>
-      <figure class="story-list__item">
-        <div class="item__holder"></div>
-        <div class="item__date">
-          <span class="date__span date__day">08</span>
-          <span class="date__span date__month">June</span>
-          <span class="date__span date__year">2018</span>
-        </div>
-        <figcaption class="item__caption">
-          <h3 class="caption__text caption__title">The World Ended Today</h3>
-          <p class="caption__text">So it happened. I got her call. She was to travel to New Zealand. I was happy for her but I knew it had ended.
-          </p>
-        </figcaption>
-        <div class="item__overlay">Read Story</div>
-        <a class="link item__link" href="story.html?id=3"></a>
-      </figure>
-      <figure class="story-list__item">
-        <div class="item__holder"></div>
-        <div class="item__date">
-          <span class="date__span date__day">08</span>
-          <span class="date__span date__month">June</span>
-          <span class="date__span date__year">2018</span>
-        </div>
-        <figcaption class="item__caption">
-          <h3 class="caption__text caption__title">So far so good</h3>
-          <p class="caption__text">The only skills I have the patience to learn are those that have no real application in life. </p>
-        </figcaption>
-        <div class="item__overlay">Read Story</div>
-        <a class="link item__link" href="story.html?id=4"></a>
-      </figure>
-      <figure class="story-list__item">
-        <div class="item__holder"></div>
-        <div class="item__date">
-          <span class="date__span date__day">08</span>
-          <span class="date__span date__month">June</span>
-          <span class="date__span date__year">2018</span>
-        </div>
-        <figcaption class="item__caption">
-          <h3 class="caption__text caption__title">So far so good</h3>
-          <p class="caption__text">The only skills I have the patience to learn are those that have no real application in life. </p>
-        </figcaption>
-        <div class="item__overlay">Read Story</div>
-        <a class="link item__link" href="story.html?id=5"></a>
-      </figure>
+      <!-- story cards come here -->
     </div>
     <div class="story-list__load-btn">
       <a href="#" class="button button--success">
-        Load more
-      </a>
+        < Prev </a>
+          <a href="#" class="button button--success">
+            More >
+          </a>
     </div>
     <footer class="footer">
       <div class="container">
@@ -142,14 +74,7 @@
       </div>
     </footer>
   </div>
-  <template id="no-stories">
-    <div class="story-list--empty">
-      <!-- icon-empty -->
-      <h2>You have not written any story</h2>
-      <a>Add a new story</a>
-    </div>
-  </template>
-  <template id="story-card">
+  <template id="js-story-card">
     <figure class="story-list__item">
       <div class="item__holder"></div>
       <div class="item__date">
@@ -159,7 +84,7 @@
       </div>
       <figcaption class="item__caption">
         <h3 class="caption__text caption__title">I kissed her</h3>
-        <p class="caption__text">It was a dark cold night. We were strolling down the street as I escorted her home</p>
+        <p class="caption__text caption__content">It was a dark cold night. We were strolling down the street as I escorted her home</p>
       </figcaption>
       <div class="item__overlay">Read Story</div>
       <a class="link item__link" href="story.html?id=1"></a>

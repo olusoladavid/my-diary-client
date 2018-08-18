@@ -553,12 +553,12 @@
 }
 
 .story {
-  margin-left: auto;
-  margin-right: auto;
-  padding: 50px 0;
-  margin-top: 50px;
+  padding: 50px 0 100px 0;
+  margin: 50px auto 0 auto;
   background: #fff;
-  width: 75%;
+  width: 60%;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .story__date {
@@ -571,22 +571,27 @@
 .story__title {
   color: #333;
   font-weight: bold;
-  font-size: 35px;
-  margin-top: 5px;
+  font-size: 25px;
+  margin-top: 15px;
   padding-left: 50px;
 }
 
 .story__content {
-  font-size: 25px;
+  font-size: 20px;
   line-height: 1.8em;
   padding: 0 50px;
 }
 
 .story__toolbar {
-  position: relative;
+  position: fixed;
   height: 60px;
+  width: 60%;
+  left: 20%;
+  bottom: 0;
+  background: white;
   padding: 0 50px;
-  margin-top: 40px;
+  margin-top: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -765,6 +770,11 @@
 
   .story {
     width: 100%;
+  }
+
+  .story__toolbar {
+    width: 100%;
+    left: 0;
   }
 
   .story__edit-btn,
