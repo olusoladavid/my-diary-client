@@ -310,6 +310,203 @@ const loadStories = async (queryObj) => {
   }
 };
 
+// -------- Single Story functions --------------------------
+
+const singleStory = document.querySelector('.js-story');
+
+let storyId;
+let isFavorite = false;
+
+let editMode = false;
+
+const modal = document.querySelector('.js-modal');
+const storyDeleteBtn = document.querySelector('.js-delete-story');
+const storyEditBtn = document.querySelector('.js-edit-story');
+const modalCancelBtn = document.querySelector('.js-cancel-modal');
+const modalConfirmBtn = document.querySelector('.js-confirm-modal');
+const favBtn = document.querySelector('.js-icon-heart');
+const titleEditor = document.querySelector('.js-story-title');
+const contentEditor = document.querySelector('.js-story-content');
+
+
+const setFavorite = (value) => {
+  const refavBtn = document.querySelector('.js-story-favicon svg');
+  isFavorite = value;
+  if (value) {
+    refavBtn.classList.add('icon--heart-active');
+  } else {
+    refavBtn.classList.remove('icon--heart-active');
+  }
+};
+
+const populateStory = (entry) => {
+  singleStory.querySelector('.story__date').innerHTML = entry.created_on;
+  singleStory.querySelector('.story__title').innerHTML = entry.title;
+  singleStory.querySelector('.story__content').innerHTML = entry.content;
+  setFavorite(entry.is_favorite);
+};
+
+const processEdit = async (favStatus) => {
+  // show progress feedback
+  startProgress(storyEditBtn);
+  if (!storyId) {
+    return;
+  }
+  // get title and content
+  const title = titleEditor.textContent;
+  const content = contentEditor.textContent;
+  // prepare request
+  const requestUrl = `${baseUrl}/entries/${storyId}`;
+  const token = localStorage.getItem('accessToken');
+  const data = JSON.stringify({
+    title,
+    content,
+    is_favorite: favStatus,
+  });
+  const request = {
+    method: 'PUT',
+    mode: 'cors',
+    body: data,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  // send request
+  try {
+    const rawResponse = await fetch(requestUrl, request);
+    const { status } = rawResponse;
+    const parsedResponse = await rawResponse.json();
+    if (status === 200) {
+      // repopulate story
+      populateStory(parsedResponse);
+    } else if (status === 400) {
+      // TODO: validate chars
+    } else {
+      handleCommonErrors(status, parsedResponse);
+    }
+  } catch (err) {
+    // TODO: toast connection error message
+  } finally {
+    setFavorite(isFavorite);
+    if (storyEditBtn) stopProgress(storyEditBtn, 'Edit');
+  }
+};
+
+const toggleFavorite = (e) => {
+  e.target.classList.toggle('icon--heart-active');
+  processEdit(!isFavorite);
+};
+
+const editStory = (e) => {
+  if (!editMode) {
+    titleEditor.contentEditable = 'true';
+    contentEditor.contentEditable = 'true';
+    contentEditor.focus();
+    e.target.innerHTML = 'Save';
+    editMode = true;
+  } else {
+    titleEditor.blur();
+    contentEditor.blur();
+    titleEditor.contentEditable = 'true';
+    contentEditor.contentEditable = 'true';
+    editMode = false;
+    processEdit(isFavorite);
+  }
+};
+
+const processDelete = async () => {
+  // show user loading status
+  startProgress(storyDeleteBtn);
+  // if id is not defined, inform user
+  if (!storyId) {
+    return;
+  }
+  // prepare request
+  const requestUrl = `${baseUrl}/entries/${storyId}`;
+  const token = localStorage.getItem('accessToken');
+  const request = {
+    method: 'DELETE',
+    mode: 'cors',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  // send request
+  try {
+    const rawResponse = await fetch(requestUrl, request);
+    const { status } = rawResponse;
+    const parsedResponse = await rawResponse.json();
+    if (status === 204) {
+      // go back to stories page
+      window.location.replace('stories.html');
+    } else {
+      handleCommonErrors(status, parsedResponse);
+    }
+  } catch (err) {
+    // TODO: toast connection error message
+  } finally {
+    if (storyDeleteBtn) stopProgress(storyDeleteBtn, 'Delete');
+  }
+};
+
+const showDeleteModal = () => {
+  modal.style.display = 'block';
+};
+const hideDeleteModal = () => {
+  modal.style.display = 'none';
+};
+
+const confirmDelete = () => {
+  modal.style.display = 'none';
+  processDelete();
+};
+
+const loadStory = async (queryObj) => {
+  // TODO: show user loading status
+  // get story id
+  storyId = queryObj.id;
+  // if id is not defined, inform user
+  if (!storyId) {
+    singleStory.querySelector('.story__date').innerHTML = new Date();
+    singleStory.querySelector('.story__title').innerHTML = 'No story to see here';
+    singleStory.querySelector('.story__content').innerHTML = 'Please go back to your stories page and select a story to view';
+    return;
+  }
+  // prepare request
+  const requestUrl = `${baseUrl}/entries/${storyId}`;
+  const token = localStorage.getItem('accessToken');
+  const request = {
+    method: 'GET',
+    mode: 'cors',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  // send request
+  try {
+    // TODO: inform user that fetch has started
+    const rawResponse = await fetch(requestUrl, request);
+    const { status } = rawResponse;
+    const parsedResponse = await rawResponse.json();
+    if (status === 200) {
+      // populate the story template with entry details
+      populateStory(parsedResponse);
+    } else {
+      handleCommonErrors(status, parsedResponse);
+    }
+  } catch (err) {
+    // TODO: toast connection error message
+  }
+};
+
+if (storyDeleteBtn) storyDeleteBtn.addEventListener('click', showDeleteModal);
+if (storyEditBtn) storyEditBtn.addEventListener('click', editStory);
+if (modalConfirmBtn) modalConfirmBtn.addEventListener('click', confirmDelete);
+if (modalCancelBtn) modalCancelBtn.addEventListener('click', hideDeleteModal);
+if (favBtn) favBtn.addEventListener('click', toggleFavorite);
 
 // -------------------- Router functions --------------------------
 
