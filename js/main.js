@@ -562,6 +562,45 @@ const addStory = async (e) => {
 
 if (newStoryForm) newStoryForm.addEventListener('submit', addStory);
 
+// --------------------- Profile ----------------------------------
+
+const entriesCounter = document.querySelector('.js-profile-entries .value');
+const daysCounter = document.querySelector('.js-profile-days .value');
+const favCounter = document.querySelector('.js-profile-favs .value');
+const reminderSetter = document.querySelector('.js-reminder-setter');
+
+const loadProfile = () => {
+  // make request
+  const requestUrl = `${baseUrl}/profile`;
+  const successCb = (status, response) => {
+    if (status === 200) {
+      const days = (Date.now() - new Date(response.created_on).getTime()) / (24 * 3600 * 1000);
+      entriesCounter.innerHTML = response.entries_count;
+      daysCounter.innerHTML = parseInt(days, 10);
+      favCounter.innerHTML = response.fav_count;
+      reminderSetter.checked = response.email_reminder;
+    } else {
+      handleCommonErrors(status, response);
+    }
+  };
+  makeRequest('GET', requestUrl, null, successCb, undefined, () => {});
+};
+
+const updateProfile = (e) => {
+  // make request
+  const reminder = e.target.checked;
+  const data = JSON.stringify({ email_reminder: reminder });
+  const requestUrl = `${baseUrl}/profile`;
+  const successCb = (status, response) => {
+    if (!(status === 204)) {
+      handleCommonErrors(status, response);
+    }
+  };
+  makeRequest('PUT', requestUrl, data, successCb, undefined, () => {});
+};
+
+if (reminderSetter) reminderSetter.addEventListener('change', updateProfile);
+
 // -------------------- Router functions --------------------------
 
 const resolveRoute = () => {
