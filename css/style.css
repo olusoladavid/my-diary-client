@@ -438,6 +438,19 @@
   text-align: center;
 }
 
+.pagination-btn {
+  margin: 0 10px;
+}
+
+.pagination-btn:hover {
+  transform: scale(1.1);
+  transition: transform 0.25s ease-in;
+}
+
+.pagination-btn--disabled {
+  color: grey !important;
+}
+
 .profile * {
   box-sizing: border-box;
 }
@@ -522,10 +535,10 @@
 
 .switch {
   display: inline-block;
-  font-size: 20px; /* 1 */
+  font-size: 20px;
   height: 1em;
   width: 2em;
-  background: #bdb9a6;
+  background: #fff;
   border-radius: 1em;
 }
 

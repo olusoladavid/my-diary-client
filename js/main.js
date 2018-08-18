@@ -35,6 +35,17 @@ const handleCommonErrors = (status, resp) => {
   }
 };
 
+const transformDate = (dateStr) => {
+  const date = dateStr ? new Date(dateStr) : new Date();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'August', 'September', 'October', 'November', 'December'];
+  let day = date.getDate();
+  if (day < 10) day = `0${day}`;
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return { day, month, year };
+};
+
 // const makeToast = (type, message) => {
 // }
 
@@ -59,7 +70,10 @@ const makeRequest = async (method, requestUrl, body = null,
   try {
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
-    const parsedResponse = await rawResponse.json();
+    let parsedResponse = null;
+    if (rawResponse.headers['Content-Type'] === 'text/json') {
+      parsedResponse = await rawResponse.json();
+    }
     successCb(status, parsedResponse);
   } catch (err) {
     catchCb();
@@ -241,8 +255,34 @@ formFields.forEach((field) => {
 // -------------------- Stories.html functions --------------------------
 const storyCard = document.querySelector('#js-story-card');
 const storyList = document.querySelector('.js-story-list');
+const storyListTitle = document.querySelector('.js-story-list-title');
+const favLink = document.querySelector('.js-fav-link');
+const prevBtn = document.querySelector('.js-stories-prev');
+const moreBtn = document.querySelector('.js-stories-more');
+
+let fetchedEntries = null;
 
 const getStoryCard = () => document.importNode(storyCard.content, true);
+
+const togglePaginationButtons = () => {
+  const { page, count, limit } = fetchedEntries.meta;
+  const isFirstPage = page === 0;
+  const isLastPage = (count / limit) <= (page + 1);
+  if (isFirstPage) {
+    prevBtn.dataset.viewable = 'false';
+    prevBtn.classList.add('pagination-btn--disabled');
+  } else {
+    prevBtn.dataset.viewable = 'true';
+    prevBtn.classList.remove('pagination-btn--disabled');
+  }
+  if (isLastPage) {
+    moreBtn.dataset.viewable = 'false';
+    moreBtn.classList.add('pagination-btn--disabled');
+  } else {
+    moreBtn.dataset.viewable = 'true';
+    moreBtn.classList.remove('pagination-btn--disabled');
+  }
+};
 
 // start a non-blocking fetch to endpoint
 const loadStories = async (queryObj) => {
@@ -266,7 +306,20 @@ const loadStories = async (queryObj) => {
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
     const parsedResponse = await rawResponse.json();
+    fetchedEntries = parsedResponse;
     if (status === 200) {
+      // clear the current storylist
+      storyList.innerHTML = '';
+      // if the stories are favorites
+      if (queryObj.filter && queryObj.filter === 'favs') {
+        storyListTitle.innerHTML = 'Favorites';
+        favLink.href = 'stories.html';
+        favLink.innerHTML = 'Stories';
+      } else {
+        storyListTitle.innerHTML = 'My Stories';
+        favLink.href = 'stories.html?filter=favs';
+        favLink.innerHTML = 'Favorites';
+      }
       // when fetch is complete, iterate over entries
       const { entries } = parsedResponse;
       // foreach iteration, populate the story-card template with entry details
@@ -275,12 +328,12 @@ const loadStories = async (queryObj) => {
           const {
             id, title, content, created_on: createdOn,
           } = entry;
-          const storyDate = new Date(createdOn);
+          const { day, month, year } = transformDate(createdOn);
           const card = getStoryCard();
           card.querySelector('.story-list__item').setAttribute('data-story-id', id);
-          card.querySelector('.date__day').innerHTML = storyDate.getDay();
-          card.querySelector('.date__month').innerHTML = storyDate.getMonth();
-          card.querySelector('.date__year').innerHTML = storyDate.getFullYear();
+          card.querySelector('.date__day').innerHTML = day.toString();
+          card.querySelector('.date__month').innerHTML = month.substring(0, 3).toUpperCase();
+          card.querySelector('.date__year').innerHTML = year.toString();
           card.querySelector('.caption__title').innerHTML = title;
           card.querySelector('.caption__content').innerHTML = `${content.substring(0, 100)}...`;
           card.querySelector('.item__link').href = `story.html?id=${id}`;
@@ -289,11 +342,11 @@ const loadStories = async (queryObj) => {
           // TODO: hide progress toast
         });
       } else {
-        const storyDate = new Date();
+        const { day, month, year } = transformDate();
         const card = getStoryCard();
-        card.querySelector('.date__day').innerHTML = storyDate.getDay();
-        card.querySelector('.date__month').innerHTML = storyDate.getMonth();
-        card.querySelector('.date__year').innerHTML = storyDate.getFullYear();
+        card.querySelector('.date__day').innerHTML = day.toString();
+        card.querySelector('.date__month').innerHTML = month.substring(0, 3).toUpperCase();
+        card.querySelector('.date__year').innerHTML = year.toString();
         card.querySelector('.caption__title').innerHTML = 'You have not added any story';
         card.querySelector('.caption__content').innerHTML = 'Click on this card to add your first story';
         card.querySelector('.item__link').href = 'new-story.html';
@@ -306,9 +359,21 @@ const loadStories = async (queryObj) => {
       handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    // TODO: toast connection error message
+    // TODO: toast
+  } finally {
+    togglePaginationButtons();
   }
 };
+
+const loadPage = (evt, page) => {
+  if (evt.target.dataset.viewable === 'false') return;
+  const currentQueryObj = queryToJSON(window.location.search);
+  const newQueryObj = Object.assign(currentQueryObj, { page });
+  loadStories(newQueryObj);
+};
+
+if (moreBtn) moreBtn.addEventListener('click', e => loadPage(e, fetchedEntries.meta.page + 1));
+if (prevBtn) prevBtn.addEventListener('click', e => loadPage(e, fetchedEntries.meta.page - 1));
 
 // -------- Single Story functions --------------------------
 
@@ -340,7 +405,9 @@ const setFavorite = (value) => {
 };
 
 const populateStory = (entry) => {
-  singleStory.querySelector('.story__date').innerHTML = entry.created_on;
+  const { day, month, year } = transformDate(entry.created_on);
+  const renderedDate = `${day} ${month.toUpperCase()} ${year}`;
+  singleStory.querySelector('.story__date').innerHTML = renderedDate;
   singleStory.querySelector('.story__title').innerHTML = entry.title;
   singleStory.querySelector('.story__content').innerHTML = entry.content;
   setFavorite(entry.is_favorite);
@@ -437,7 +504,10 @@ const processDelete = async () => {
   try {
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
-    const parsedResponse = await rawResponse.json();
+    let parsedResponse;
+    if (rawResponse.headers['Content-Type'] === 'text/json') {
+      parsedResponse = await rawResponse.json();
+    }
     if (status === 204) {
       // go back to stories page
       window.location.replace('stories.html');
@@ -469,7 +539,9 @@ const loadStory = async (queryObj) => {
   storyId = queryObj.id;
   // if id is not defined, inform user
   if (!storyId) {
-    singleStory.querySelector('.story__date').innerHTML = new Date();
+    const { day, month, year } = transformDate();
+    const renderedDate = `${day} ${month.toUpperCase()} ${year}`;
+    singleStory.querySelector('.story__date').innerHTML = renderedDate;
     singleStory.querySelector('.story__title').innerHTML = 'No story to see here';
     singleStory.querySelector('.story__content').innerHTML = 'Please go back to your stories page and select a story to view';
     return;
@@ -512,7 +584,12 @@ if (favBtn) favBtn.addEventListener('click', toggleFavorite);
 
 const newStoryForm = document.querySelector('.js-new-story');
 const newStoryBtn = document.querySelector('.js-new-story-btn');
-if (newStoryForm) newStoryForm.querySelector('.form-group__heading').innerHTML = new Date();
+
+if (newStoryForm) {
+  const { day, month, year } = transformDate();
+  const renderedDate = `${day} ${month.toUpperCase()} ${year}`;
+  newStoryForm.querySelector('.form-group__heading').innerHTML = renderedDate;
+}
 
 const addStory = async (e) => {
   e.preventDefault();
