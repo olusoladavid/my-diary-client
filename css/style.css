@@ -686,6 +686,63 @@
   padding-top: 80px;
 }
 
+.toast-container {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  width: 30%;
+  position: fixed;
+  top: 10px;
+  left: calc(50% - 15%);
+  box-sizing: border-box;
+  min-height: 50px;
+  z-index: 200;
+}
+
+.toast-container__close-btn {
+  color: white;
+  font-weight: bold;
+  font-size: 30px;
+  margin-bottom: 15px;
+  display: block;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  align-self: flex-end;
+  cursor: pointer;
+}
+
+.toast {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  margin-bottom: 5px;
+  padding: 5px;
+}
+
+.toast--error {
+  background: firebrick;
+}
+
+.toast--error .toast__text::before {
+  content: "\2297";
+  margin-right: 5px;
+}
+
+.toast--progress {
+  background: #3bbfaf;
+}
+
+.toast--progress .toast__text::before {
+  content: "\25e0";
+  margin-right: 5px;
+  display: inline-block;
+  animation: spinAround 0.3s linear 0s infinite;
+}
+
 @media only screen and (max-width: 768px) {
   .header {
     position: relative;
@@ -718,7 +775,7 @@
   .nav__link {
     color: #6865f9;
     font-size: 30px;
-    font-weight: 600px;
+    font-weight: 600;
     padding: 5px;
   }
 
@@ -802,5 +859,18 @@
 
   .modal__body {
     width: 80%;
+  }
+
+  .toast-container {
+    width: 70%;
+    position: fixed;
+    top: 10px;
+    left: calc(50% - 35%);
+    min-height: 30px;
+  }
+
+  .toast {
+    font-size: 17px;
+    padding: 5px;
   }
 }
