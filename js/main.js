@@ -25,16 +25,6 @@ const jsonToQuery = (queryObj) => {
   return queryString;
 };
 
-const handleCommonErrors = (status, resp) => {
-  switch (status) {
-    case 401:
-      window.location.replace('login.html');
-      break;
-    default:
-      // TODO: toast the error message
-  }
-};
-
 const transformDate = (dateStr) => {
   const date = dateStr ? new Date(dateStr) : new Date();
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
@@ -46,11 +36,91 @@ const transformDate = (dateStr) => {
   return { day, month, year };
 };
 
-// const makeToast = (type, message) => {
-// }
+const htmlToNode = (htmlStr) => {
+  const template = document.createElement('template');
+  const html = htmlStr.trim();
+  template.innerHTML = html;
+  return template.content;
+};
+
+const getToastContainer = () => {
+  const toastContainerHtml = `<div class="toast-container js-toast-container">
+  <div class="toast-container__close-btn js-toast-close">&times;</div>
+  </div>`;
+  return htmlToNode(toastContainerHtml);
+};
+
+const destroyToastContainer = () => {
+  const container = document.querySelector('.js-toast-container');
+  if (container) container.remove();
+};
+
+const displayToast = (...toastArray) => {
+  // get toast container (with config)
+  const containerNode = getToastContainer();
+  const container = containerNode.querySelector('.js-toast-container');
+  // add toast(s) to toast container
+  toastArray.forEach((toast) => {
+    container.appendChild(toast);
+  });
+  // attach click listener to close button
+  container.querySelector('.js-toast-close').addEventListener('click', destroyToastContainer);
+  // show toast container
+  document.body.appendChild(container);
+  container.style.display = 'flex';
+};
+
+const makeToast = (type, message) => {
+  // create toast node
+  const toastHtml = `<div class="toast js-toast"><span class="toast__text js-toast-text">
+    </span></div>`;
+  const toastNode = htmlToNode(toastHtml);
+  const toast = toastNode.querySelector('.js-toast');
+  // add style classes according to type
+  switch (type) {
+    case 'progress':
+      toast.classList.add('toast--progress');
+      break;
+    case 'error':
+      toast.classList.add('toast--error');
+      break;
+    default:
+  }
+  // insert message
+  toast.querySelector('.js-toast-text').textContent = message;
+  // return toast element
+  return toast;
+};
+
+const toastProgress = (msg = 'Loading...') => {
+  displayToast(makeToast('progress', msg));
+};
+
+const toastError = (msg) => {
+  displayToast(makeToast('error', msg));
+};
+
+const handleCommonErrors = (status, resp) => {
+  let errorList;
+  let errorToasts;
+  switch (status) {
+    case 401:
+      window.location.replace('login.html');
+      break;
+    case 400:
+      errorList = resp.error;
+      errorToasts = errorList.map(errObj => makeToast('error', errObj.message));
+      displayToast(...errorToasts);
+      break;
+    default:
+      errorToasts = makeToast('error', resp.error.message);
+      displayToast(errorToasts);
+  }
+};
 
 const reportNetworkError = () => {
-  // toast message here
+  const msg = 'Error connecting to server. Please check your connection';
+  toastError(msg);
 };
 
 const makeRequest = async (method, requestUrl, body = null,
@@ -71,17 +141,17 @@ const makeRequest = async (method, requestUrl, body = null,
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
     let parsedResponse = null;
-    if (rawResponse.headers['Content-Type'] === 'text/json') {
+    const contentType = rawResponse.headers.get('Content-Type');
+    if (contentType && contentType.includes('application/json')) {
       parsedResponse = await rawResponse.json();
     }
     successCb(status, parsedResponse);
   } catch (err) {
-    catchCb();
+    catchCb(err);
   } finally {
     finallyCb();
   }
 };
-
 
 // ---------------------- Responsive side menu --------------------
 
@@ -126,13 +196,13 @@ const hideError = () => {
   error.style.display = 'none';
 };
 
-const startProgress = (button) => {
+const startProgressBtn = (button) => {
   const btn = button;
   btn.innerHTML = '';
   btn.classList.add('button--loading');
 };
 
-const stopProgress = (button, label) => {
+const stopProgressBtn = (button, label) => {
   const btn = button;
   btn.innerHTML = label;
   btn.classList.remove('button--loading');
@@ -148,7 +218,7 @@ const processSignup = async (e) => {
 
   const button = document.querySelector('.js-login-button');
 
-  startProgress(button);
+  startProgressBtn(button);
 
   // get data from form fields
   const email = document.querySelector('.js-signup-email').value;
@@ -158,7 +228,7 @@ const processSignup = async (e) => {
   // check if passwords are same
   if (password !== repassword) {
     showError('Password does not match');
-    stopProgress(button, 'Signup');
+    stopProgressBtn(button, 'Signup');
     return;
   }
 
@@ -181,19 +251,13 @@ const processSignup = async (e) => {
     if (status === 201) {
       localStorage.setItem('accessToken', parsedResponse.token);
       window.location.replace('stories.html');
-    } else if (status === 400) {
-      const errorList = parsedResponse.error;
-      let message = errorList.reduce((errStr, errObj) => `${errStr}* ${errObj.message}<br>`, '');
-      message = `The following errors occurred:<br>${message}`;
-      showError(message);
-      stopProgress(button, 'Signup');
     } else {
-      showError(parsedResponse.error.message);
-      stopProgress(button, 'Signup');
+      handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    showError('An error occurred');
-    stopProgress(button, 'Signup');
+    reportNetworkError();
+  } finally {
+    if (button) stopProgressBtn(button, 'Signup');
   }
 };
 
@@ -201,7 +265,7 @@ const processLogin = async (e) => {
   e.preventDefault();
   const button = document.querySelector('.js-login-button');
 
-  startProgress(button);
+  startProgressBtn(button);
 
   // get data from form fields
   const email = document.querySelector('.js-login-email').value;
@@ -226,19 +290,13 @@ const processLogin = async (e) => {
     if (status === 200) {
       localStorage.setItem('accessToken', parsedResponse.token);
       window.location.replace('stories.html');
-    } else if (status === 400) {
-      const errorList = parsedResponse.error;
-      let message = errorList.reduce((errStr, errObj) => `${errStr}* ${errObj.message}<br>`, '');
-      message = `The following errors occurred:<br>${message}`;
-      showError(message);
-      stopProgress(button, 'Login');
     } else {
-      showError(parsedResponse.error.message);
-      stopProgress(button, 'Login');
+      handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    showError('An error occurred');
-    stopProgress(button, 'Login');
+    reportNetworkError();
+  } finally {
+    if (button) stopProgressBtn(button, 'Login');
   }
 };
 
@@ -265,6 +323,7 @@ let fetchedEntries = null;
 const getStoryCard = () => document.importNode(storyCard.content, true);
 
 const togglePaginationButtons = () => {
+  if (!fetchedEntries) return;
   const { page, count, limit } = fetchedEntries.meta;
   const isFirstPage = page === 0;
   const isLastPage = (count / limit) <= (page + 1);
@@ -286,28 +345,16 @@ const togglePaginationButtons = () => {
 
 // start a non-blocking fetch to endpoint
 const loadStories = async (queryObj) => {
+  toastProgress();
   // form query string from queryObj
   const queryString = jsonToQuery(queryObj);
   // set request url
   const requestUrl = `${baseUrl}/entries${queryString}`;
   // prepare request
-  const token = localStorage.getItem('accessToken');
-  const request = {
-    method: 'GET',
-    mode: 'cors',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  };
-  // send request
-  try {
-    // TODO: inform user that fetch has started
-    const rawResponse = await fetch(requestUrl, request);
-    const { status } = rawResponse;
-    const parsedResponse = await rawResponse.json();
-    fetchedEntries = parsedResponse;
+  const successCb = (status, response) => {
     if (status === 200) {
+      // cache result
+      fetchedEntries = response;
       // clear the current storylist
       storyList.innerHTML = '';
       // if the stories are favorites
@@ -321,7 +368,7 @@ const loadStories = async (queryObj) => {
         favLink.innerHTML = 'Favorites';
       }
       // when fetch is complete, iterate over entries
-      const { entries } = parsedResponse;
+      const { entries } = response;
       // foreach iteration, populate the story-card template with entry details
       if (entries.length) {
         entries.forEach((entry) => {
@@ -339,7 +386,6 @@ const loadStories = async (queryObj) => {
           card.querySelector('.item__link').href = `story.html?id=${id}`;
           // append node to story-list
           storyList.appendChild(card);
-          // TODO: hide progress toast
         });
       } else {
         const { day, month, year } = transformDate();
@@ -353,16 +399,16 @@ const loadStories = async (queryObj) => {
         card.querySelector('.item__overlay').innerHTML = 'Write a story';
         // append node to story-list
         storyList.appendChild(card);
-        // TODO: hide progress toast
       }
     } else {
-      handleCommonErrors(status, parsedResponse);
+      handleCommonErrors(status, response);
     }
-  } catch (err) {
-    // TODO: toast
-  } finally {
+  };
+  const finallyCb = () => {
+    destroyToastContainer();
     togglePaginationButtons();
-  }
+  };
+  makeRequest('GET', requestUrl, undefined, successCb, undefined, finallyCb);
 };
 
 const loadPage = (evt, page) => {
@@ -415,7 +461,7 @@ const populateStory = (entry) => {
 
 const processEdit = async (favStatus) => {
   // show progress feedback
-  startProgress(storyEditBtn);
+  startProgressBtn(storyEditBtn);
   if (!storyId) {
     return;
   }
@@ -453,10 +499,10 @@ const processEdit = async (favStatus) => {
       handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    // TODO: toast connection error message
+    reportNetworkError();
   } finally {
     setFavorite(isFavorite);
-    if (storyEditBtn) stopProgress(storyEditBtn, 'Edit');
+    if (storyEditBtn) stopProgressBtn(storyEditBtn, 'Edit');
   }
 };
 
@@ -484,7 +530,7 @@ const editStory = (e) => {
 
 const processDelete = async () => {
   // show user loading status
-  startProgress(storyDeleteBtn);
+  startProgressBtn(storyDeleteBtn);
   // if id is not defined, inform user
   if (!storyId) {
     return;
@@ -515,9 +561,9 @@ const processDelete = async () => {
       handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    // TODO: toast connection error message
+    reportNetworkError();
   } finally {
-    if (storyDeleteBtn) stopProgress(storyDeleteBtn, 'Delete');
+    if (storyDeleteBtn) stopProgressBtn(storyDeleteBtn, 'Delete');
   }
 };
 
@@ -534,7 +580,7 @@ const confirmDelete = () => {
 };
 
 const loadStory = async (queryObj) => {
-  // TODO: show user loading status
+  toastProgress();
   // get story id
   storyId = queryObj.id;
   // if id is not defined, inform user
@@ -559,7 +605,6 @@ const loadStory = async (queryObj) => {
   };
   // send request
   try {
-    // TODO: inform user that fetch has started
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
     const parsedResponse = await rawResponse.json();
@@ -570,7 +615,9 @@ const loadStory = async (queryObj) => {
       handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    // TODO: toast connection error message
+    reportNetworkError();
+  } finally {
+    destroyToastContainer();
   }
 };
 
@@ -594,7 +641,7 @@ if (newStoryForm) {
 const addStory = async (e) => {
   e.preventDefault();
   // show progress feedback
-  startProgress(newStoryBtn);
+  startProgressBtn(newStoryBtn);
   // get title and content
   const title = newStoryForm.querySelector('.js-new-story-title').value;
   const content = newStoryForm.querySelector('.js-new-story-content').value;
@@ -617,22 +664,19 @@ const addStory = async (e) => {
   };
   // send request
   try {
-    // TODO: inform user that fetch has started
     const rawResponse = await fetch(requestUrl, request);
     const { status } = rawResponse;
     const parsedResponse = await rawResponse.json();
     if (status === 201) {
       // redirect user to all entries page
       window.location.replace('stories.html');
-    } else if (status === 400) {
-      // TODO: t
     } else {
       handleCommonErrors(status, parsedResponse);
     }
   } catch (err) {
-    // TODO: toast connection error message
+    reportNetworkError();
   } finally {
-    if (newStoryBtn) stopProgress(newStoryBtn, 'Save');
+    if (newStoryBtn) stopProgressBtn(newStoryBtn, 'Save');
   }
   // handle errors
 };
@@ -647,6 +691,7 @@ const favCounter = document.querySelector('.js-profile-favs .value');
 const reminderSetter = document.querySelector('.js-reminder-setter');
 
 const loadProfile = () => {
+  toastProgress();
   // make request
   const requestUrl = `${baseUrl}/profile`;
   const successCb = (status, response) => {
@@ -655,25 +700,32 @@ const loadProfile = () => {
       entriesCounter.innerHTML = response.entries_count;
       daysCounter.innerHTML = parseInt(days, 10);
       favCounter.innerHTML = response.fav_count;
-      reminderSetter.checked = response.email_reminder;
+      reminderSetter.checked = response.reminder_set;
     } else {
       handleCommonErrors(status, response);
     }
   };
-  makeRequest('GET', requestUrl, null, successCb, undefined, () => {});
+  const finallyCb = () => {
+    destroyToastContainer();
+  };
+  makeRequest('GET', requestUrl, null, successCb, undefined, finallyCb);
 };
 
 const updateProfile = (e) => {
+  toastProgress('Updating profile');
   // make request
   const reminder = e.target.checked;
-  const data = JSON.stringify({ email_reminder: reminder });
+  const data = JSON.stringify({ reminder_set: reminder });
   const requestUrl = `${baseUrl}/profile`;
   const successCb = (status, response) => {
     if (!(status === 204)) {
       handleCommonErrors(status, response);
     }
   };
-  makeRequest('PUT', requestUrl, data, successCb, undefined, () => {});
+  const finallyCb = () => {
+    destroyToastContainer();
+  };
+  makeRequest('PUT', requestUrl, data, successCb, undefined, finallyCb);
 };
 
 if (reminderSetter) reminderSetter.addEventListener('change', updateProfile);
