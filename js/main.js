@@ -734,17 +734,18 @@ if (reminderSetter) reminderSetter.addEventListener('change', updateProfile);
 
 const resolveRoute = () => {
   // get url
-  const path = window.location.pathname;
+  const pathArray = window.location.pathname.split('/');
+  const pagePath = pathArray[pathArray.length - 1];
   const queries = queryToJSON(window.location.search);
   // match path -- switch(n)
-  switch (path) {
-    case '/stories.html':
+  switch (pagePath) {
+    case 'stories.html':
       loadStories(queries);
       break;
-    case '/story.html':
+    case 'story.html':
       loadStory(queries);
       break;
-    case '/profile.html':
+    case 'profile.html':
       loadProfile();
       break;
     default:
