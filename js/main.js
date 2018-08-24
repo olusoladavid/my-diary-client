@@ -857,7 +857,8 @@ window.addEventListener('DOMContentLoaded', resolveRoute);
 const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator && 'PushManager' in window) {
     try {
-      swRegistration = await navigator.serviceWorker.register('../sw.js');
+      // load from the directory of the page registering the serviceworker
+      swRegistration = await navigator.serviceWorker.register('./sw.js');
       subscription = await swRegistration.pushManager.getSubscription();
     } catch (e) {
       // push notifications not available on device or browser
