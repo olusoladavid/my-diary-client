@@ -56,6 +56,8 @@ const destroyToastContainer = () => {
 };
 
 const displayToast = (...toastArray) => {
+  // destroy any existing toast container
+  destroyToastContainer();
   // get toast container (with config)
   const containerNode = getToastContainer();
   const container = containerNode.querySelector('.js-toast-container');
@@ -701,34 +703,129 @@ const loadProfile = () => {
       daysCounter.innerHTML = parseInt(days, 10);
       favCounter.innerHTML = response.fav_count;
       reminderSetter.checked = response.reminder_set;
+      destroyToastContainer();
     } else {
       handleCommonErrors(status, response);
     }
   };
-  const finallyCb = () => {
-    destroyToastContainer();
-  };
+  const finallyCb = () => {};
   makeRequest('GET', requestUrl, null, successCb, undefined, finallyCb);
 };
 
-const updateProfile = (e) => {
+const updateProfile = (pushSub = null) => {
   toastProgress('Updating profile');
-  // make request
-  const reminder = e.target.checked;
-  const data = JSON.stringify({ reminder_set: reminder });
+  const reminder = reminderSetter.checked;
+  let data = { reminder_set: reminder };
+  if (pushSub) {
+    const pushObj = JSON.stringify(pushSub);
+    data.push_sub = pushObj;
+  }
+  data = JSON.stringify(data);
   const requestUrl = `${baseUrl}/profile`;
   const successCb = (status, response) => {
+    destroyToastContainer();
     if (!(status === 204)) {
       handleCommonErrors(status, response);
     }
   };
-  const finallyCb = () => {
-    destroyToastContainer();
-  };
+  const finallyCb = () => {};
   makeRequest('PUT', requestUrl, data, successCb, undefined, finallyCb);
 };
 
-if (reminderSetter) reminderSetter.addEventListener('change', updateProfile);
+// testing service worker
+const rawApplicationServerKey = 'BJvWDlGlwTj6THFRM6eYueAQlmPIRV6VDTaA_fN9hcDCaY_IHhX3vlGcLSa0UBUbXgFKsR1F95Z6ibMv4WsbK74';
+let swRegistration = null;
+let subscription = null;
+
+const requestPermission = async () => {
+  const permission = await Notification.requestPermission();
+  return permission;
+};
+
+const convertBase64StringToUint8Array = (base64str) => {
+  // compute '=' character padding that ensure the last encoding has 4 chars
+  const paddingCount = 4 - (base64str % 4);
+  const padding = '='.repeat(paddingCount);
+  // add padding to string
+  let newBase64str = base64str + padding;
+  // convert url-safe base64 chars to standard base64 encoding
+  newBase64str = newBase64str.replace(/-/g, '+').replace(/_/g, '/');
+  // convert string to uint8array
+  const rawString = window.atob(newBase64str);
+  const outputArray = new Uint8Array(rawString.length);
+  for (let i = 0; i < rawString.length; i += 1) {
+    outputArray[i] = rawString.charCodeAt(i);
+  }
+  return outputArray;
+};
+
+const subscribeUser = async () => {
+  const applicationServerKey = convertBase64StringToUint8Array(rawApplicationServerKey);
+  try {
+    const config = {
+      userVisibleOnly: true,
+      applicationServerKey,
+    };
+    const pushSub = await swRegistration.pushManager.subscribe(config);
+    return pushSub;
+  } catch (e) {
+    toastError('An error occurred while reminder was being setup. Please try again');
+  }
+  return null;
+};
+
+const setReminder = async (e) => {
+  // check if push is available
+  if (!swRegistration) {
+    toastError('Notifications are not available on your device or browser');
+    e.target.checked = !e.target.checked;
+    return;
+  }
+  toastProgress();
+  e.target.disabled = true;
+
+  const userWantsReminder = e.target.checked;
+  const notificationIsAllowed = Notification.permission === 'granted';
+  const notificationIsDenied = Notification.permission === 'denied';
+
+  if (!userWantsReminder) {
+    updateProfile();
+    e.target.disabled = false;
+    return;
+  }
+
+  if (notificationIsDenied) {
+    e.target.disabled = false;
+    e.target.checked = !e.target.checked;
+    toastError('Please unblock notifications from this app in your browser settings');
+    return;
+  }
+
+  if (!notificationIsAllowed) {
+    const permission = await requestPermission();
+    if (permission !== 'granted') {
+      e.target.disabled = false;
+      e.target.checked = !e.target.checked;
+      toastError('Please enable notifications. Refresh the page to try again');
+      return;
+    }
+  }
+
+  if (!subscription) {
+    subscription = await subscribeUser();
+    if (!subscription) {
+      e.target.disabled = false;
+      e.target.checked = !e.target.checked;
+      return;
+    }
+  }
+
+  updateProfile(subscription);
+  e.target.disabled = false;
+  destroyToastContainer();
+};
+
+if (reminderSetter) reminderSetter.addEventListener('change', setReminder);
 
 // -------------------- Router functions --------------------------
 
@@ -754,3 +851,20 @@ const resolveRoute = () => {
 
 // on page load, resolve route
 window.addEventListener('DOMContentLoaded', resolveRoute);
+
+// ------------------------ service worker registration --------------
+
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    try {
+      swRegistration = await navigator.serviceWorker.register('/sw.js');
+      subscription = await swRegistration.pushManager.getSubscription();
+    } catch (e) {
+      // push notifications not available on device or browser
+    }
+  } else {
+    toastError('Your browser does not support push notifications');
+  }
+};
+
+registerServiceWorker();
