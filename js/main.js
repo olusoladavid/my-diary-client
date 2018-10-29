@@ -1,6 +1,6 @@
 // ---------------------- Globals and Utilities-----------------------
 
-const baseUrl = 'https://my-diary-api.herokuapp.com/api/v1';
+const baseUrl = 'https://my-diary-backend.herokuapp.com/api/v1';
 const _ = undefined;
 
 /**

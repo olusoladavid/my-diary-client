@@ -1,5 +1,5 @@
 # my-diary-client
-A web-based client (frontend) that consumes MyDiary API and interfaces users with the service. The API can be found at [https://my-diary-api.herokuapp.com/api/docs](https://my-diary-api.herokuapp.com/api/docs)
+A web-based client (frontend) that consumes MyDiary API and interfaces users with the service. The API can be found at [https://my-diary-backend.herokuapp.com/api/docs](https://my-diary-backend.herokuapp.com/api/docs)
 
 ## Features
 
@@ -48,7 +48,7 @@ git clone https://github.com/olusoladavid/my-diary-client
 
 ## API Docs
 
-- [https://my-diary-api.herokuapp.com/api/docs](https://my-diary-api.herokuapp.com/api/docs)
+- [https://my-diary-backend.herokuapp.com/api/docs](https://my-diary-backend.herokuapp.com/api/docs)
 
 ## License
 - MIT
